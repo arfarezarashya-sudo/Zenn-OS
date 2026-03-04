@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenn OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #00f5ff;
+    --secondary: #ff006e;
+    --accent: #7b00ff;
+    --bg-dark: #050510;
+    --bg-mid: #0a0a1e;
+    --bg-card: rgba(255,255,255,0.04);
+    --glass: rgba(0,245,255,0.08);
+    --text: #e0e8ff;
+    --text-dim: rgba(200,210,255,0.5);
+    --glow: 0 0 20px rgba(0,245,255,0.4);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    overflow: hidden;
+    width: 100vw; height: 100vh;
+    user-select: none;
+  }
+  #boot-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 30px;
+  }
+  .boot-logo {
+    font-family: 'Oxanium', monospace; font-size: 72px; font-weight: 800;
+    letter-spacing: 12px;
+    background: linear-gradient(135deg, #00f5ff, #7b00ff, #ff006e);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    animation: pulse-glow 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-glow {
+    0%,100%{filter:drop-shadow(0 0 20px #00f5ff)} 50%{filter:drop-shadow(0 0 40px #7b00ff)}
+  }
+  .boot-subtitle { font-size: 14px; letter-spacing: 6px; color: var(--text-dim); text-transform: uppercase; }
+  .boot-badges { display: flex; gap: 16px; }
+  .boot-badge { padding: 4px 12px; border: 1px solid rgba(0,245,255,0.3); border-radius: 20px; font-size: 10px; letter-spacing: 2px; color: var(--primary); }
+  .boot-bar-wrap { width: 320px; height: 3px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+  .boot-bar { height: 100%; background: linear-gradient(90deg,#00f5ff,#7b00ff); border-radius: 3px; width: 0%; box-shadow: 0 0 10px #00f5ff; transition: width 0.05s linear; }
+  .boot-text { font-size: 11px; letter-spacing: 3px; color: var(--text-dim); min-height: 16px; }
+
+  #lock-screen {
+    position: fixed; inset: 0; z-index: 9000;
+    background: linear-gradient(135deg,#050510,#0d0020,#050510);
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+    cursor: pointer;
+  }
+  .lock-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 30%,rgba(0,245,255,0.08),transparent 60%),radial-gradient(ellipse at 70% 70%,rgba(123,0,255,0.08),transparent 60%); }
+  .particle { position: absolute; width: 2px; height: 2px; background: var(--primary); border-radius: 50%; animation: float-p linear infinite; opacity: 0.5; }
+  @keyframes float-p { from{transform:translateY(100vh);opacity:0} 10%{opacity:0.6} 90%{opacity:0.6} to{transform:translateY(-10vh) translateX(60px);opacity:0} }
+  .lock-time { font-family: 'Oxanium',monospace; font-size: 80px; font-weight: 300; letter-spacing: 8px; position: relative; text-shadow: 0 0 30px rgba(0,245,255,0.4); }
+  .lock-date { font-size: 16px; letter-spacing: 4px; color: var(--text-dim); text-transform: uppercase; position: relative; }
+  .lock-hint { font-size: 13px; letter-spacing: 3px; color: var(--text-dim); margin-top: 30px; position: relative; animation: blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  #desktop { position: fixed; inset: 0; z-index: 1; background: linear-gradient(135deg,#050510,#0a0020,#050510); display: none; }
+  .wallpaper { position: absolute; inset: 0; background: radial-gradient(ellipse at 20% 20%,rgba(0,245,255,0.12),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(123,0,255,0.12),transparent 50%),radial-gradient(ellipse at 50% 50%,rgba(255,0,110,0.06),transparent 60%); }
+  .grid-overlay { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,245,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.03) 1px,transparent 1px); background-size: 40px 40px; }
+
+  #taskbar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 56px; z-index: 100;
+    background: rgba(5,5,16,0.85); backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,245,255,0.15);
+    display: flex; align-items: center; padding: 0 16px; gap: 8px;
+  }
+  .taskbar-start { width: 40px; height: 40px; background: linear-gradient(135deg,#00f5ff,#7b00ff); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family:'Oxanium',monospace; font-weight: 800; font-size: 16px; color: #000; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+  .taskbar-start:hover { transform: scale(1.1); box-shadow: var(--glow); }
+  .taskbar-apps { display: flex; gap: 6px; flex: 1; }
+  .taskbar-app { width: 40px; height: 40px; background: var(--glass); border: 1px solid rgba(0,245,255,0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: all 0.2s; }
+  .taskbar-app:hover { background: rgba(0,245,255,0.15); border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--glow); }
+  .taskbar-right { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-dim); letter-spacing: 1px; }
+  .taskbar-clock { font-family:'Oxanium',monospace; font-size: 14px; color: var(--primary); letter-spacing: 2px; }
+  .wi { width: 8px; height: 8px; background: #00ff88; border-radius: 50%; box-shadow: 0 0 8px #00ff88; }
+
+  .desktop-icons { position: absolute; top: 20px; left: 20px; display: grid; grid-template-columns: repeat(4,80px); gap: 20px; padding: 10px; }
+  .di { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 8px; border-radius: 12px; transition: all 0.2s; }
+  .di:hover { background: rgba(0,245,255,0.08); box-shadow: 0 0 20px rgba(0,245,255,0.1); }
+  .di:active { transform: scale(0.95); }
+  .ib { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 1px solid rgba(255,255,255,0.1); }
+  .il { font-size: 11px; letter-spacing: 0.5px; color: var(--text); text-align: center; text-shadow: 0 1px 4px #000; }
+  .ic-a{background:linear-gradient(135deg,#3ddc84,#1a7a45)} .ic-w{background:linear-gradient(135deg,#00bcf2,#005a9e)} .ic-i{background:linear-gradient(135deg,#aaa,#444)} .ic-m{background:linear-gradient(135deg,#e8e8e8,#aaa)} .ic-g{background:linear-gradient(135deg,#ff006e,#7b00ff)} .ic-b{background:linear-gradient(135deg,#ff6b35,#f7931e)} .ic-f{background:linear-gradient(135deg,#00f5ff,#0070ff)} .ic-s{background:linear-gradient(135deg,#8a8a8a,#444)} .ic-mu{background:linear-gradient(135deg,#ff006e,#ff6b35)} .ic-c{background:linear-gradient(135deg,#7b00ff,#ff006e)} .ic-st{background:linear-gradient(135deg,#00f5ff,#00ff88)} .ic-t{background:linear-gradient(135deg,#1a1a1a,#333);border:1px solid #00f5ff!important} .ic-sn{background:linear-gradient(135deg,#00f5ff,#00ff88)}
+
+  .window {
+    position: fixed; background: rgba(8,8,24,0.92); backdrop-filter: blur(30px);
+    border: 1px solid rgba(0,245,255,0.2); border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8),0 0 40px rgba(0,245,255,0.05);
+    z-index: 500; min-width: 400px; min-height: 300px;
+    display: none; flex-direction: column; overflow: hidden;
+    animation: wo 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes wo { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+  .window.show { display: flex; }
+  .wtb { height: 44px; background: rgba(0,245,255,0.06); border-bottom: 1px solid rgba(0,245,255,0.1); display: flex; align-items: center; padding: 0 16px; gap: 10px; cursor: move; flex-shrink: 0; }
+  .wc { display: flex; gap: 6px; }
+  .wb { width: 13px; height: 13px; border-radius: 50%; cursor: pointer; transition: all 0.2s; }
+  .wb:hover { transform: scale(1.2); }
+  .wb-x{background:#ff5f57} .wb-m{background:#febc2e} .wb-z{background:#28c840}
+  .wtitle { flex: 1; font-family:'Oxanium',monospace; font-size: 13px; letter-spacing: 2px; color: var(--text-dim); text-align: center; margin-right: 45px; }
+  .wcon { flex: 1; overflow-y: auto; padding: 20px; }
+  .wcon::-webkit-scrollbar{width:4px} .wcon::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.3);border-radius:2px}
+
+  #start-menu {
+    position: fixed; bottom: 64px; left: 8px; width: 360px;
+    background: rgba(8,8,24,0.95); backdrop-filter: blur(30px);
+    border: 1px solid rgba(0,245,255,0.2); border-radius: 16px;
+    padding: 20px; z-index: 900; display: none;
+    animation: wo 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  #start-menu.show { display: block; }
+  .sh { font-family:'Oxanium',monospace; font-size: 20px; font-weight: 700; background: linear-gradient(135deg,#00f5ff,#7b00ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; letter-spacing: 3px; }
+  .ssearch { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,245,255,0.2); border-radius: 8px; padding: 8px 14px; color: var(--text); font-family:'Rajdhani',sans-serif; font-size: 14px; letter-spacing: 1px; outline: none; margin-bottom: 16px; }
+  .ssearch:focus { border-color: var(--primary); }
+  .sgrid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 16px; }
+  .sa { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 4px; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
+  .sa:hover { background: rgba(0,245,255,0.08); }
+  .sai { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .san { font-size: 10px; letter-spacing: 0.5px; color: var(--text-dim); text-align: center; }
+  .sf { display: flex; justify-content: space-between; border-top: 1px solid rgba(0,245,255,0.1); padding-top: 12px; }
+  .sfb { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; letter-spacing: 1px; color: var(--text-dim); transition: all 0.2s; }
+  .sfb:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+  .games-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; }
+  .gc { background: linear-gradient(135deg,rgba(123,0,255,0.2),rgba(255,0,110,0.2)); border: 1px solid rgba(123,0,255,0.3); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+  .gc::before { content:''; position: absolute; top:0;left:0;right:0; height:2px; background:linear-gradient(90deg,#7b00ff,#ff006e); }
+  .gc:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(123,0,255,0.3); border-color: var(--accent); }
+  .ge { font-size: 32px; margin-bottom: 8px; }
+  .gti { font-size: 15px; font-weight: 600; letter-spacing: 1px; margin-bottom: 4px; }
+  .gge { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+  .gbadge { position: absolute; top:10px;right:10px; padding: 2px 8px; border-radius: 10px; font-size: 9px; letter-spacing: 1px; }
+  .bo { background:rgba(0,255,136,0.2);color:#00ff88;border:1px solid #00ff88; }
+  .bf { background:rgba(255,245,0,0.2);color:#fff500;border:1px solid #fff500; }
+
+  .toggle { width:44px;height:24px;background:rgba(255,255,255,0.1);border-radius:12px;cursor:pointer;position:relative;transition:background 0.3s; }
+  .toggle.on { background: var(--primary); }
+  .toggle::after { content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.3s; }
+  .toggle.on::after { transform: translateX(20px); }
+
+  #notifications { position: fixed; top:20px;right:20px; z-index:9000; display:flex;flex-direction:column;gap:10px; width:300px; }
+  .notif { background:rgba(8,8,24,0.95);backdrop-filter:blur(20px);border:1px solid rgba(0,245,255,0.25);border-left:3px solid var(--primary);border-radius:12px;padding:12px 16px;animation:ni 0.4s cubic-bezier(0.34,1.56,0.64,1);cursor:pointer;transition:all 0.2s; }
+  .notif:hover { transform: translateX(-4px); }
+  @keyframes ni { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+  .ntitle { font-size:13px;font-weight:600;letter-spacing:1px; }
+  .nbody { font-size:11px;color:var(--text-dim);margin-top:3px; }
+
+  #ctx-menu { position:fixed;background:rgba(8,8,24,0.97);backdrop-filter:blur(20px);border:1px solid rgba(0,245,255,0.2);border-radius:12px;padding:6px;z-index:9000;display:none;min-width:180px;box-shadow:0 10px 40px rgba(0,0,0,0.8); }
+  .ci { display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px;transition:background 0.15s; }
+  .ci:hover { background:rgba(0,245,255,0.1); }
+  .csep { height:1px;background:rgba(0,245,255,0.1);margin:4px 0; }
+
+  .game-btn { background:rgba(0,245,255,0.1);border:1px solid rgba(0,245,255,0.3);color:var(--primary);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Oxanium',monospace;font-size:12px;letter-spacing:1px;transition:all 0.2s; }
+  .game-btn:hover { background:rgba(0,245,255,0.2); }
+
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:rgba(0,245,255,0.2);border-radius:2px}
+  @keyframes spin-slow { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+
+<div id="boot-screen">
+  <div class="boot-logo">ZENN</div>
+  <div class="boot-subtitle">The Universal Operating System</div>
+  <div class="boot-badges">
+    <div class="boot-badge">ANDROID</div><div class="boot-badge">WINDOWS</div><div class="boot-badge">iOS</div><div class="boot-badge">MACOS</div>
+  </div>
+  <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
+  <div class="boot-text" id="boot-text">Initializing kernel...</div>
+</div>
+
+<div id="lock-screen">
+  <div class="lock-bg"></div>
+  <div id="lp"></div>
+  <div class="lock-time" id="lock-time">00:00</div>
+  <div class="lock-date" id="lock-date"></div>
+  <div class="lock-hint">↑ Klik untuk membuka kunci</div>
+</div>
+
+<div id="desktop">
+  <div class="wallpaper" id="wp"></div>
+  <div class="grid-overlay"></div>
+  <div class="desktop-icons">
+    <div class="di" ondblclick="openApp('browser')"><div class="ib ic-b">🌐</div><div class="il">Browser</div></div>
+    <div class="di" ondblclick="openApp('files')"><div class="ib ic-f">📁</div><div class="il">Files</div></div>
+    <div class="di" ondblclick="openApp('games')"><div class="ib ic-g">🎮</div><div class="il">Games</div></div>
+    <div class="di" ondblclick="openApp('store')"><div class="ib ic-st">🛍️</div><div class="il">Z-Store</div></div>
+    <div class="di" ondblclick="openApp('music')"><div class="ib ic-mu">🎵</div><div class="il">Music</div></div>
+    <div class="di" ondblclick="openApp('camera')"><div class="ib ic-c">📷</div><div class="il">Camera</div></div>
+    <div class="di" ondblclick="openApp('terminal')"><div class="ib ic-t">⌨️</div><div class="il">Terminal</div></div>
+    <div class="di" ondblclick="openApp('settings')"><div class="ib ic-s">⚙️</div><div class="il">Settings</div></div>
+    <div class="di" ondblclick="openApp('snake')"><div class="ib ic-sn">🐍</div><div class="il">Snake</div></div>
+    <div class="di" ondblclick="openApp('android')"><div class="ib ic-a">🤖</div><div class="il">Android Apps</div></div>
+    <div class="di" ondblclick="openApp('winapps')"><div class="ib ic-w">🪟</div><div class="il">Win Apps</div></div>
+    <div class="di" ondblclick="openApp('macapps')"><div class="ib ic-m" style="background:linear-gradient(135deg,#ddd,#999)">🍎</div><div class="il">Mac Apps</div></div>
+  </div>
+  <div id="taskbar">
+    <div class="taskbar-start" onclick="toggleStart()">Z</div>
+    <div class="taskbar-apps" id="tbar"></div>
+    <div class="taskbar-right">
+      <div class="wi"></div><span>WiFi</span><span>🔋 87%</span><span>🔊</span>
+      <div class="taskbar-clock" id="tclock">00:00</div>
+    </div>
+  </div>
+</div>
+
+<div id="start-menu">
+  <div class="sh">ZENN OS</div>
+  <input class="ssearch" type="text" placeholder="🔍  Cari aplikasi, file..." />
+  <div class="sgrid">
+    <div class="sa" onclick="openApp('browser');toggleStart()"><div class="sai ic-b" style="border-radius:12px">🌐</div><div class="san">Browser</div></div>
+    <div class="sa" onclick="openApp('games');toggleStart()"><div class="sai ic-g" style="border-radius:12px">🎮</div><div class="san">Games</div></div>
+    <div class="sa" onclick="openApp('files');toggleStart()"><div class="sai ic-f" style="border-radius:12px">📁</div><div class="san">Files</div></div>
+    <div class="sa" onclick="openApp('settings');toggleStart()"><div class="sai ic-s" style="border-radius:12px">⚙️</div><div class="san">Settings</div></div>
+    <div class="sa" onclick="openApp('music');toggleStart()"><div class="sai ic-mu" style="border-radius:12px">🎵</div><div class="san">Music</div></div>
+    <div class="sa" onclick="openApp('store');toggleStart()"><div class="sai ic-st" style="border-radius:12px">🛍️</div><div class="san">Z-Store</div></div>
+    <div class="sa" onclick="openApp('terminal');toggleStart()"><div class="sai ic-t" style="border-radius:12px">⌨️</div><div class="san">Terminal</div></div>
+    <div class="sa" onclick="openApp('snake');toggleStart()"><div class="sai ic-sn" style="border-radius:12px">🐍</div><div class="san">Snake</div></div>
+  </div>
+  <div class="sf">
+    <div class="sfb" onclick="lockSys()">🔒 Lock</div>
+    <div class="sfb">👤 ZennUser</div>
+    <div class="sfb" onclick="shutdownSys()">⏻ Shutdown</div>
+  </div>
+</div>
+
+<div id="notifications"></div>
+<div id="ctx-menu">
+  <div class="ci" onclick="changeWP()">🎨 Ganti Wallpaper</div>
+  <div class="ci" onclick="openApp('settings');document.getElementById('ctx-menu').style.display='none'">⚙️ Display Settings</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="openApp('files');document.getElementById('ctx-menu').style.display='none'">📁 File Manager</div>
+  <div class="ci" onclick="openApp('terminal');document.getElementById('ctx-menu').style.display='none'">⌨️ Terminal</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="showN('Zenn OS','Version 1.0 — Zenn Kernel 6.0','🖥️');document.getElementById('ctx-menu').style.display='none'">ℹ️ Tentang Zenn OS</div>
+</div>
+
+<!-- WINDOWS -->
+<div class="window" id="win-browser" style="width:600px;height:460px;top:80px;left:80px">
+  <div class="wtb" onmousedown="drag(event,'win-browser')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-browser')"></div><div class="wb wb-m" onclick="minW('win-browser')"></div><div class="wb wb-z" onclick="maxW('win-browser')"></div></div>
+    <div class="wtitle">ZEN BROWSER</div>
+  </div>
+  <div class="wcon">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+      <input id="burl" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(0,245,255,0.2);border-radius:8px;padding:7px 14px;color:var(--text);font-family:Rajdhani,sans-serif;font-size:13px;outline:none" value="https://zennos.io" onkeydown="if(event.key==='Enter')browseUrl()">
+      <button onclick="browseUrl()" style="background:var(--primary);color:#000;border:none;padding:7px 16px;border-radius:8px;cursor:pointer;font-family:Oxanium,monospace;font-size:12px;font-weight:600;letter-spacing:1px">GO</button>
+    </div>
+    <div id="bframe" style="background:rgba(255,255,255,0.03);border:1px solid rgba(0,245,255,0.1);border-radius:10px;height:240px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--text-dim)">
+      <div style="font-size:40px">🌐</div>
+      <div style="letter-spacing:2px;font-size:13px">ZEN BROWSER — UNIVERSAL WEB</div>
+      <div style="font-size:11px">Mendukung Android, iOS, Desktop web apps</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px">
+      <div onclick="setUrl('https://google.com')" style="background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;cursor:pointer;font-size:11px;color:var(--text-dim)"><div style="font-size:24px;margin-bottom:5px">🔍</div>Google</div>
+      <div onclick="setUrl('https://youtube.com')" style="background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;cursor:pointer;font-size:11px;color:var(--text-dim)"><div style="font-size:24px;margin-bottom:5px">▶️</div>YouTube</div>
+      <div onclick="setUrl('https://github.com')" style="background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;cursor:pointer;font-size:11px;color:var(--text-dim)"><div style="font-size:24px;margin-bottom:5px">🐙</div>GitHub</div>
+      <div onclick="setUrl('https://maps.google.com')" style="background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;text-align:center;cursor:pointer;font-size:11px;color:var(--text-dim)"><div style="font-size:24px;margin-bottom:5px">🗺️</div>Maps</div>
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-games" style="width:540px;height:480px;top:100px;left:120px">
+  <div class="wtb" onmousedown="drag(event,'win-games')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-games')"></div><div class="wb wb-m" onclick="minW('win-games')"></div><div class="wb wb-z" onclick="maxW('win-games')"></div></div>
+    <div class="wtitle">ZENN GAMES</div>
+  </div>
+  <div class="wcon">
+    <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim);margin-bottom:16px;text-transform:uppercase">Game Unggulan</div>
+    <div class="games-grid">
+      <div class="gc" onclick="openApp('snake')"><span class="gbadge bf">OFFLINE</span><div class="ge">🐍</div><div class="gti">Snake Classic</div><div class="gge">ARCADE · PUZZLE</div></div>
+      <div class="gc"><span class="gbadge bo">ONLINE</span><div class="ge">⚔️</div><div class="gti">Zenn Arena</div><div class="gge">ACTION · BATTLE</div></div>
+      <div class="gc"><span class="gbadge bo">ONLINE</span><div class="ge">🏎️</div><div class="gti">Turbo Rush</div><div class="gge">RACING · SPORT</div></div>
+      <div class="gc"><span class="gbadge bf">OFFLINE</span><div class="ge">🧩</div><div class="gti">Puzzle Master</div><div class="gge">PUZZLE · CASUAL</div></div>
+      <div class="gc"><span class="gbadge bo">ONLINE</span><div class="ge">🌌</div><div class="gti">Galaxy Wars</div><div class="gge">STRATEGY · SCI-FI</div></div>
+      <div class="gc"><span class="gbadge bf">OFFLINE</span><div class="ge">🃏</div><div class="gti">Card Duel</div><div class="gge">CARD · STRATEGY</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-files" style="width:560px;height:420px;top:90px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-files')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-files')"></div><div class="wb wb-m" onclick="minW('win-files')"></div><div class="wb wb-z" onclick="maxW('win-files')"></div></div>
+    <div class="wtitle">FILE MANAGER</div>
+  </div>
+  <div class="wcon" style="display:flex;padding:0;gap:0">
+    <div style="width:150px;border-right:1px solid rgba(0,245,255,0.1);padding:16px;flex-shrink:0">
+      <div style="font-size:10px;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px;text-transform:uppercase">Akses Cepat</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(0,245,255,0.12);color:var(--primary);font-size:13px;margin-bottom:2px;cursor:pointer">🏠 Home</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">📥 Unduhan</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">🖼️ Gambar</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">🎵 Musik</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">🎬 Video</div>
+      <div style="font-size:10px;letter-spacing:2px;color:var(--text-dim);margin:12px 0 8px;text-transform:uppercase">Perangkat</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">💾 Internal</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;margin-bottom:2px;cursor:pointer">☁️ Zenn Cloud</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer">📱 Android</div>
+    </div>
+    <div style="flex:1;padding:16px">
+      <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim);margin-bottom:14px">DIREKTORI HOME</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">📁</div><div style="font-size:11px;color:var(--text-dim)">Dokumen</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">🖼️</div><div style="font-size:11px;color:var(--text-dim)">Gambar</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">🎵</div><div style="font-size:11px;color:var(--text-dim)">Musik</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">🎬</div><div style="font-size:11px;color:var(--text-dim)">Video</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">📥</div><div style="font-size:11px;color:var(--text-dim)">Unduhan</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">☁️</div><div style="font-size:11px;color:var(--text-dim)">Cloud</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">🔧</div><div style="font-size:11px;color:var(--text-dim)">Sistem</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px;border-radius:10px;cursor:pointer" onmouseover="this.style.background='rgba(0,245,255,0.08)'" onmouseout="this.style.background=''"><div style="font-size:36px">📦</div><div style="font-size:11px;color:var(--text-dim)">Arsip</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-settings" style="width:600px;height:480px;top:80px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-settings')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-settings')"></div><div class="wb wb-m" onclick="minW('win-settings')"></div><div class="wb wb-z" onclick="maxW('win-settings')"></div></div>
+    <div class="wtitle">PENGATURAN</div>
+  </div>
+  <div class="wcon">
+    <div style="display:flex;gap:20px">
+      <div style="width:150px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(0,245,255,0.12);color:var(--primary);font-size:13px;margin-bottom:3px;cursor:pointer">🖥️ Tampilan</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🔊 Suara</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🌐 Jaringan</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🔋 Baterai</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🔒 Privasi</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🤖 Android</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;margin-bottom:3px;cursor:pointer">🪟 Windows</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;cursor:pointer">🍎 macOS</div>
+      </div>
+      <div style="flex:1">
+        <div style="background:var(--bg-card);border:1px solid rgba(0,245,255,0.1);border-radius:12px;padding:16px;margin-bottom:14px">
+          <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:14px">Tampilan</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div><div style="font-size:14px">Mode Gelap</div><div style="font-size:11px;color:var(--text-dim)">Tema gelap di seluruh sistem</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div><div style="font-size:14px">Efek Neon</div><div style="font-size:11px;color:var(--text-dim)">Aktifkan glow cyan</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+            <div style="font-size:14px">Resolusi</div>
+            <div style="color:var(--primary);font-size:13px;letter-spacing:1px">2560×1440</div>
+          </div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid rgba(0,245,255,0.1);border-radius:12px;padding:16px">
+          <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;margin-bottom:14px">Kompatibilitas</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div><div style="font-size:14px">Layer Android</div><div style="font-size:11px;color:var(--text-dim)">Jalankan app Android secara native</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">
+            <div><div style="font-size:14px">Layer Windows</div><div style="font-size:11px;color:var(--text-dim)">Jalankan file .exe</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0">
+            <div><div style="font-size:14px">Layer iOS/macOS</div><div style="font-size:11px;color:var(--text-dim)">Jalankan ekosistem Apple</div></div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-music" style="width:380px;height:380px;top:100px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-music')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-music')"></div><div class="wb wb-m" onclick="minW('win-music')"></div><div class="wb wb-z" onclick="maxW('win-music')"></div></div>
+    <div class="wtitle">ZENN MUSIC</div>
+  </div>
+  <div class="wcon" style="display:flex;flex-direction:column;align-items:center;gap:18px">
+    <div id="album-art" style="width:130px;height:130px;background:linear-gradient(135deg,#ff006e,#7b00ff);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:56px;box-shadow:0 10px 40px rgba(255,0,110,0.3)">🎵</div>
+    <div style="text-align:center">
+      <div style="font-size:17px;font-weight:600;letter-spacing:2px">Zenn Beats Vol. 1</div>
+      <div style="font-size:12px;color:var(--text-dim);letter-spacing:1px;margin-top:4px">Zenn Audio · 4:32</div>
+    </div>
+    <div style="width:100%;background:rgba(255,255,255,0.05);height:3px;border-radius:2px;cursor:pointer;position:relative" id="prog-bar">
+      <div id="prog" style="width:35%;height:100%;background:linear-gradient(90deg,#ff006e,#7b00ff);border-radius:2px"></div>
+    </div>
+    <div style="display:flex;gap:24px;align-items:center">
+      <span style="cursor:pointer;opacity:0.6;font-size:18px">⏮️</span>
+      <span id="pbtn" onclick="togglePlay()" style="cursor:pointer;width:50px;height:50px;background:linear-gradient(135deg,#ff006e,#7b00ff);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 20px rgba(255,0,110,0.4)">▶️</span>
+      <span style="cursor:pointer;opacity:0.6;font-size:18px">⏭️</span>
+    </div>
+    <div style="display:flex;gap:10px;width:100%">
+      <div onclick="showN('Music','Shuffle aktif!','🎵')" style="flex:1;background:var(--bg-card);border:1px solid rgba(0,245,255,0.1);border-radius:8px;padding:8px;text-align:center;cursor:pointer;font-size:12px;color:var(--text-dim)">🔀 Shuffle</div>
+      <div onclick="showN('Music','Repeat aktif!','🔁')" style="flex:1;background:var(--bg-card);border:1px solid rgba(0,245,255,0.1);border-radius:8px;padding:8px;text-align:center;cursor:pointer;font-size:12px;color:var(--text-dim)">🔁 Repeat</div>
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-camera" style="width:400px;height:360px;top:90px;left:120px">
+  <div class="wtb" onmousedown="drag(event,'win-camera')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-camera')"></div><div class="wb wb-m" onclick="minW('win-camera')"></div><div class="wb wb-z" onclick="maxW('win-camera')"></div></div>
+    <div class="wtitle">ZENN CAMERA</div>
+  </div>
+  <div class="wcon" style="display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="width:100%;height:180px;background:radial-gradient(ellipse,#0a0a30,#050510);border:1px solid rgba(0,245,255,0.2);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;position:relative">
+      <div style="font-size:38px">📸</div>
+      <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim)">KAMERA SIAP</div>
+      <div style="position:absolute;top:10px;left:10px;font-size:10px;color:var(--primary);letter-spacing:2px;background:rgba(0,0,0,0.5);padding:3px 8px;border-radius:4px">REC ●</div>
+      <div style="position:absolute;top:10px;right:10px;font-size:10px;color:var(--text-dim)">AI 12MP</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="padding:6px 14px;background:var(--bg-card);border:1px solid rgba(0,245,255,0.15);border-radius:8px;font-size:12px;cursor:pointer" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='rgba(0,245,255,0.15)'">Foto</div>
+      <div style="padding:6px 14px;background:var(--bg-card);border:1px solid rgba(0,245,255,0.15);border-radius:8px;font-size:12px;cursor:pointer" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='rgba(0,245,255,0.15)'">Video</div>
+      <div style="padding:6px 14px;background:var(--bg-card);border:1px solid rgba(0,245,255,0.15);border-radius:8px;font-size:12px;cursor:pointer" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='rgba(0,245,255,0.15)'">Portrait</div>
+      <div style="padding:6px 14px;background:var(--bg-card);border:1px solid rgba(0,245,255,0.15);border-radius:8px;font-size:12px;cursor:pointer" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='rgba(0,245,255,0.15)'">AI Scan</div>
+    </div>
+    <div onclick="showN('Camera','Foto berhasil diambil!','📸')" style="width:60px;height:60px;background:linear-gradient(135deg,#7b00ff,#ff006e);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(123,0,255,0.4)">📸</div>
+  </div>
+</div>
+
+<div class="window" id="win-terminal" style="width:520px;height:380px;top:100px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-terminal')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-terminal')"></div><div class="wb wb-m" onclick="minW('win-terminal')"></div><div class="wb wb-z" onclick="maxW('win-terminal')"></div></div>
+    <div class="wtitle">ZENN TERMINAL</div>
+  </div>
+  <div class="wcon" style="background:#030310;border-radius:0 0 16px 16px;font-family:monospace;font-size:13px;display:flex;flex-direction:column;padding:16px">
+    <div id="tout" style="flex:1;overflow-y:auto;margin-bottom:10px;line-height:1.8;max-height:250px"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="color:var(--primary)">zenn@os:~$</span>
+      <input id="tin" style="flex:1;background:transparent;border:none;color:#00f5ff;font-family:monospace;font-size:13px;outline:none" placeholder="ketik perintah..." onkeydown="termIn(event)">
+    </div>
+  </div>
+</div>
+
+<div class="window" id="win-store" style="width:560px;height:440px;top:80px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-store')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-store')"></div><div class="wb wb-m" onclick="minW('win-store')"></div><div class="wb wb-z" onclick="maxW('win-store')"></div></div>
+    <div class="wtitle">Z-STORE</div>
+  </div>
+  <div class="wcon">
+    <div style="font-size:11px;letter-spacing:3px;color:var(--text-dim);margin-bottom:16px">APLIKASI UNGGULAN</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="store-grid"></div>
+  </div>
+</div>
+
+<div class="window" id="win-android" style="width:480px;height:400px;top:90px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-android')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-android')"></div><div class="wb wb-m" onclick="minW('win-android')"></div><div class="wb wb-z" onclick="maxW('win-android')"></div></div>
+    <div class="wtitle">ANDROID LAYER</div>
+  </div>
+  <div class="wcon" id="android-grid"></div>
+</div>
+
+<div class="window" id="win-winapps" style="width:480px;height:400px;top:90px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-winapps')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-winapps')"></div><div class="wb wb-m" onclick="minW('win-winapps')"></div><div class="wb wb-z" onclick="maxW('win-winapps')"></div></div>
+    <div class="wtitle">WINDOWS LAYER</div>
+  </div>
+  <div class="wcon" id="winapps-grid"></div>
+</div>
+
+<div class="window" id="win-macapps" style="width:480px;height:400px;top:90px;left:100px">
+  <div class="wtb" onmousedown="drag(event,'win-macapps')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-macapps')"></div><div class="wb wb-m" onclick="minW('win-macapps')"></div><div class="wb wb-z" onclick="maxW('win-macapps')"></div></div>
+    <div class="wtitle">MACOS LAYER</div>
+  </div>
+  <div class="wcon" id="macapps-grid"></div>
+</div>
+
+<div class="window" id="win-snake" style="width:420px;height:440px;top:80px;left:150px">
+  <div class="wtb" onmousedown="drag(event,'win-snake')">
+    <div class="wc"><div class="wb wb-x" onclick="closeW('win-snake');stopSnake()"></div><div class="wb wb-m" onclick="minW('win-snake')"></div><div class="wb wb-z" onclick="maxW('win-snake')"></div></div>
+    <div class="wtitle">SNAKE CLASSIC</div>
+  </div>
+  <div class="wcon" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+    <div style="font-family:Oxanium,monospace;font-size:18px;color:var(--primary);letter-spacing:3px">SKOR: <span id="sscore">0</span></div>
+    <canvas id="sc" width="340" height="260" style="border:1px solid rgba(0,245,255,0.3);border-radius:8px;background:#030310"></canvas>
+    <div style="font-size:11px;color:var(--text-dim);letter-spacing:2px">ARROW KEYS / WASD UNTUK BERGERAK</div>
+    <div style="display:flex;gap:10px">
+      <button class="game-btn" onclick="startSnake()">▶ MULAI</button>
+      <button class="game-btn" onclick="stopSnake()">■ RESET</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Boot
+const bmsgs=['Menginisialisasi Zenn Kernel 6.0...','Memuat Android Compatibility Layer...','Memuat Windows NT Subsystem...','Memuat macOS Darwin Layer...','Memulai Zenn Graphics Engine...','Mounting filesystem...','Memulai layanan jaringan...','Memuat sesi pengguna...','Selamat datang di Zenn OS!'];
+let bp=0;
+function runBoot(){
+  let i=0;
+  const iv=setInterval(()=>{
+    if(i>=bmsgs.length){clearInterval(iv);setTimeout(()=>{const bs=document.getElementById('boot-screen');bs.style.transition='opacity 0.8s';bs.style.opacity='0';setTimeout(()=>{bs.style.display='none';showLock();},800);},500);return;}
+    document.getElementById('boot-text').textContent=bmsgs[i];
+    bp=((i+1)/bmsgs.length)*100;
+    document.getElementById('boot-bar').style.width=bp+'%';
+    i++;
+  },380);
+}
+runBoot();
+
+function showLock(){
+  const ls=document.getElementById('lock-screen');
+  ls.style.display='flex';
+  updateLT();
+  createParts();
+  ls.onclick=unlock;
+}
+function unlock(){
+  const ls=document.getElementById('lock-screen');
+  ls.style.transition='opacity 0.5s';ls.style.opacity='0';
+  setTimeout(()=>{ls.style.display='none';document.getElementById('desktop').style.display='block';updateClock();setInterval(updateClock,1000);buildApps();setTimeout(()=>showN('Zenn OS','Selamat datang! Semua sistem siap.','🚀'),1000);},500);
+}
+function updateLT(){
+  const n=new Date();
+  document.getElementById('lock-time').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  document.getElementById('lock-date').textContent=n.toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  setTimeout(updateLT,10000);
+}
+function createParts(){
+  const c=document.getElementById('lp');
+  for(let i=0;i<30;i++){const p=document.createElement('div');p.className='particle';p.style.left=Math.random()*100+'%';p.style.animationDuration=(4+Math.random()*8)+'s';p.style.animationDelay=(Math.random()*8)+'s';c.appendChild(p);}
+}
+function updateClock(){const n=new Date();document.getElementById('tclock').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+
+// App grids
+function buildApps(){
+  const storeApps=['🎨 Zenn Paint','📊 ZennSheet','💬 Zenn Chat','🗺️ Zenn Maps','📰 ZennNews','🏋️ ZennFit','📚 ZennLearn','🧮 Kalkulator','🌦️ Cuaca'];
+  document.getElementById('store-grid').innerHTML=storeApps.map(a=>`<div style="background:var(--bg-card);border:1px solid rgba(0,245,255,0.1);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(0,245,255,0.4)'" onmouseout="this.style.borderColor='rgba(0,245,255,0.1)'" onclick="showN('Z-Store','Menginstal ${a.split(' ').slice(1).join(' ')}...','🛍️')"><div style="font-size:28px;margin-bottom:8px">${a.split(' ')[0]}</div><div style="font-size:13px;letter-spacing:0.5px">${a.split(' ').slice(1).join(' ')}</div><div style="font-size:11px;color:var(--primary);margin-top:6px;letter-spacing:1px">GRATIS</div></div>`).join('');
+  
+  const androidApps=['📱 Play Store','📸 Kamera','🎵 Spotify','💬 WhatsApp','🗺️ Maps','▶️ YouTube','📧 Gmail','📷 Galeri','🛒 Tokopedia','🔍 Google','📰 Berita','🎮 Play Games'];
+  document.getElementById('android-grid').innerHTML='<div style="background:rgba(61,220,132,0.08);border:1px solid rgba(61,220,132,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#3ddc84;letter-spacing:1px">🤖 Android 15 Layer Aktif — Semua app berjalan secara native</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+androidApps.map(a=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:8px;border-radius:10px" onmouseover="this.style.background='rgba(61,220,132,0.08)'" onmouseout="this.style.background=''" onclick="showN('Android','Membuka ${a.split(' ').slice(1).join(' ')}...','🤖')"><div style="width:44px;height:44px;background:linear-gradient(135deg,rgba(61,220,132,0.3),rgba(26,122,69,0.3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(61,220,132,0.2)">${a.split(' ')[0]}</div><div style="font-size:10px;color:var(--text-dim);text-align:center">${a.split(' ').slice(1).join(' ')}</div></div>`).join('')+'</div>';
+
+  const winApps=['💻 VS Code','📊 Excel','📝 Word','🎨 Photoshop','🎮 Steam','📹 Teams','🌐 Edge','📧 Outlook'];
+  document.getElementById('winapps-grid').innerHTML='<div style="background:rgba(0,188,242,0.08);border:1px solid rgba(0,188,242,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#00bcf2;letter-spacing:1px">🪟 Windows 11 Layer Aktif — File .exe didukung</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+winApps.map(a=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:8px;border-radius:10px" onmouseover="this.style.background='rgba(0,188,242,0.08)'" onmouseout="this.style.background=''" onclick="showN('Windows','Membuka ${a.split(' ').slice(1).join(' ')}...','🪟')"><div style="width:44px;height:44px;background:linear-gradient(135deg,rgba(0,188,242,0.3),rgba(0,90,158,0.3));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(0,188,242,0.2)">${a.split(' ')[0]}</div><div style="font-size:10px;color:var(--text-dim);text-align:center">${a.split(' ').slice(1).join(' ')}</div></div>`).join('')+'</div>';
+
+  const macApps=['🎵 iTunes','📦 App Store','🎞️ iMovie','📝 Pages','🔢 Numbers','📺 Keynote','📷 Photos','🌐 Safari'];
+  document.getElementById('macapps-grid').innerHTML='<div style="background:rgba(200,200,200,0.08);border:1px solid rgba(200,200,200,0.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:#ddd;letter-spacing:1px">🍎 macOS Sequoia Layer Aktif — Universal binaries didukung</div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+macApps.map(a=>`<div style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:8px;border-radius:10px" onmouseover="this.style.background='rgba(200,200,200,0.08)'" onmouseout="this.style.background=''" onclick="showN('macOS','Membuka ${a.split(' ').slice(1).join(' ')}...','🍎')"><div style="width:44px;height:44px;background:linear-gradient(135deg,rgba(200,200,200,0.2),rgba(100,100,100,0.2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(200,200,200,0.15)">${a.split(' ')[0]}</div><div style="font-size:10px;color:var(--text-dim);text-align:center">${a.split(' ').slice(1).join(' ')}</div></div>`).join('')+'</div>';
+}
+
+// Windows
+const openW={};
+let zT=500;
+function openApp(name){
+  const w=document.getElementById('win-'+name);
+  if(!w)return;
+  w.style.display='flex';w.classList.add('show');
+  bringF('win-'+name);openW[name]=true;updateTbar();
+  if(name==='terminal')initTerm();
+  if(name==='snake')initSCanvas();
+}
+function closeW(id){const w=document.getElementById(id);w.style.display='none';w.classList.remove('show');delete openW[id.replace('win-','')];updateTbar();}
+function minW(id){closeW(id);}
+function maxW(id){
+  const w=document.getElementById(id);
+  if(w.dataset.max){w.style.top=w.dataset.ot;w.style.left=w.dataset.ol;w.style.width=w.dataset.ow;w.style.height=w.dataset.oh;delete w.dataset.max;}
+  else{w.dataset.ot=w.style.top;w.dataset.ol=w.style.left;w.dataset.ow=w.style.width;w.dataset.oh=w.style.height;w.style.top='0';w.style.left='0';w.style.width='100vw';w.style.height='calc(100vh - 56px)';w.dataset.max='1';}
+}
+function bringF(id){zT++;document.getElementById(id).style.zIndex=zT;}
+function updateTbar(){
+  const icons={'browser':'🌐','files':'📁','games':'🎮','settings':'⚙️','music':'🎵','camera':'📷','terminal':'⌨️','store':'🛍️','snake':'🐍','android':'🤖','winapps':'🪟','macapps':'🍎'};
+  document.getElementById('tbar').innerHTML=Object.keys(openW).map(n=>`<div class="taskbar-app" onclick="bringF('win-${n}')" title="${n}">${icons[n]||'📦'}</div>`).join('');
+}
+
+// Drag
+function drag(e,id){
+  const w=document.getElementById(id);bringF(id);
+  const sx=e.clientX-w.offsetLeft,sy=e.clientY-w.offsetTop;
+  function mv(e2){w.style.left=Math.max(0,e2.clientX-sx)+'px';w.style.top=Math.max(0,Math.min(window.innerHeight-60,e2.clientY-sy))+'px';}
+  function up(){document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);}
+  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+}
+
+// Start Menu
+function toggleStart(){document.getElementById('start-menu').classList.toggle('show');}
+document.addEventListener('click',e=>{
+  const sm=document.getElementById('start-menu');
+  if(sm.classList.contains('show')&&!e.target.closest('#start-menu')&&!e.target.closest('.taskbar-start'))sm.classList.remove('show');
+  if(document.getElementById('ctx-menu').style.display==='block'&&!e.target.closest('#ctx-menu'))document.getElementById('ctx-menu').style.display='none';
+});
+
+// Context menu
+document.getElementById('desktop').addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  const cm=document.getElementById('ctx-menu');
+  cm.style.display='block';cm.style.left=Math.min(e.clientX,window.innerWidth-200)+'px';cm.style.top=Math.min(e.clientY,window.innerHeight-200)+'px';
+});
+const wallpapers=['radial-gradient(ellipse at 20% 20%,rgba(0,245,255,0.15),transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(123,0,255,0.15),transparent 50%)','radial-gradient(ellipse at 80% 20%,rgba(255,0,110,0.15),transparent 50%),radial-gradient(ellipse at 20% 80%,rgba(0,245,255,0.15),transparent 50%)','radial-gradient(ellipse at 50% 50%,rgba(123,0,255,0.2),transparent 60%)','radial-gradient(ellipse at 30% 70%,rgba(0,255,136,0.12),transparent 50%),radial-gradient(ellipse at 70% 30%,rgba(255,0,110,0.12),transparent 50%)'];
+function changeWP(){document.getElementById('wp').style.background=wallpapers[Math.floor(Math.random()*wallpapers.length)];document.getElementById('ctx-menu').style.display='none';showN('Tampilan','Wallpaper berhasil diganti!','🎨');}
+
+// Notifications
+function showN(title,body,icon='🔔'){
+  const c=document.getElementById('notifications');
+  const n=document.createElement('div');n.className='notif';
+  n.innerHTML=`<div class="ntitle">${icon} ${title}</div><div class="nbody">${body}</div>`;
+  n.onclick=()=>n.remove();c.appendChild(n);
+  setTimeout(()=>{n.style.transition='opacity 0.5s';n.style.opacity='0';setTimeout(()=>n.remove(),500);},3500);
+}
+
+// Lock/Shutdown
+function lockSys(){document.getElementById('start-menu').classList.remove('show');document.getElementById('desktop').style.display='none';showLock();}
+function shutdownSys(){document.body.innerHTML='<div style="background:#000;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;font-family:Oxanium,monospace"><div style="font-size:60px;background:linear-gradient(135deg,#00f5ff,#7b00ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-weight:800;letter-spacing:12px">ZENN</div><div style="color:rgba(200,210,255,0.5);font-size:14px;letter-spacing:4px">Mematikan sistem...</div></div>';}
+
+// Browser
+function setUrl(u){document.getElementById('burl').value=u;browseUrl();}
+function browseUrl(){
+  const u=document.getElementById('burl').value;
+  const f=document.getElementById('bframe');
+  f.innerHTML='<div style="font-size:30px">⏳</div><div style="font-size:12px;letter-spacing:2px;color:var(--text-dim)">Memuat '+u+'</div>';
+  setTimeout(()=>{f.innerHTML='<div style="font-size:30px">🌐</div><div style="font-size:13px;letter-spacing:1px;color:var(--text-dim)">'+u+'</div><div style="font-size:11px;color:rgba(0,245,255,0.5);margin-top:6px">Halaman dimuat di Zen Browser</div>';},1200);
+}
+
+// Terminal
+const termH=[];let hi=-1;
+function initTerm(){const o=document.getElementById('tout');if(o.innerHTML)return;tl('<span style="color:#00f5ff">Zenn OS Terminal v1.0.0</span>');tl('<span style="color:rgba(200,210,255,0.5)">Ketik "help" untuk daftar perintah</span>');}
+function tl(html,cmd=false){const o=document.getElementById('tout');const d=document.createElement('div');d.innerHTML=cmd?`<span style="color:#00f5ff">zenn@os:~$</span> <span style="color:#fff">${html}</span>`:html;o.appendChild(d);o.scrollTop=o.scrollHeight;}
+const cmds={
+  help:()=>'<span style="color:#7b00ff">Perintah:</span> help, ls, pwd, whoami, uname, date, clear, echo, games, neofetch',
+  ls:()=>'Documents  Downloads  Music  Pictures  Videos  Desktop',
+  pwd:()=>'/home/zennuser',
+  whoami:()=>'zennuser',
+  uname:()=>'Zenn OS 1.0 - Universal Kernel 6.0 (Android+Windows+iOS+macOS)',
+  date:()=>new Date().toLocaleString('id-ID'),
+  clear:()=>{document.getElementById('tout').innerHTML='';return null;},
+  games:()=>{openApp('games');return '<span style="color:#00ff88">Membuka Games...</span>';},
+  neofetch:()=>`<pre style="color:#00f5ff;font-size:11px;line-height:1.4">  ┌─────────────────────┐
+  │  ZENN OS v1.0       │
+  │  Kernel: Zenn 6.0   │
+  │  Android: v15       │
+  │  Windows: 11        │
+  │  macOS: Sequoia     │
+  │  RAM: 16GB / 64GB   │
+  │  CPU: Zenn X9 Pro   │
+  └─────────────────────┘</pre>`
+};
+function termIn(e){
+  if(e.key==='Enter'){
+    const inp=document.getElementById('tin');const cmd=inp.value.trim();if(!cmd)return;
+    termH.unshift(cmd);hi=-1;tl(cmd,true);
+    const [b,...args]=cmd.split(' ');
+    if(b==='echo')tl(args.join(' '));
+    else if(cmds[b]){const r=cmds[b]();if(r!==null)tl(r);}
+    else tl(`<span style="color:#ff006e">perintah tidak ditemukan: ${b}</span>`);
+    inp.value='';
+  }else if(e.key==='ArrowUp'){hi=Math.min(hi+1,termH.length-1);document.getElementById('tin').value=termH[hi]||'';}
+}
+
+// Music
+let playing=false,pt=null,prog=0;
+function togglePlay(){
+  playing=!playing;
+  document.getElementById('pbtn').textContent=playing?'⏸️':'▶️';
+  if(playing){
+    document.getElementById('album-art').style.animation='spin-slow 8s linear infinite';
+    pt=setInterval(()=>{prog=Math.min(prog+0.2,100);document.getElementById('prog').style.width=prog+'%';if(prog>=100){prog=0;playing=false;document.getElementById('pbtn').textContent='▶️';document.getElementById('album-art').style.animation='';clearInterval(pt);}},500);
+  }else{
+    document.getElementById('album-art').style.animation='';clearInterval(pt);
+  }
+}
+
+// Snake
+let sg=null;
+function initSCanvas(){const c=document.getElementById('sc');if(!c)return;stopSnake();}
+function startSnake(){
+  stopSnake();
+  const canvas=document.getElementById('sc');const ctx=canvas.getContext('2d');
+  const W=340,H=260,SZ=20;
+  let snake=[{x:6,y:6},{x:5,y:6},{x:4,y:6}];
+  let dir={x:1,y:0},food=rFood(),score=0;
+  function rFood(){return{x:Math.floor(Math.random()*(W/SZ)),y:Math.floor(Math.random()*(H/SZ))};}
+  function draw(){
+    ctx.fillStyle='#030310';ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(0,245,255,0.04)';
+    for(let x=0;x<W;x+=SZ){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=SZ){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.fillStyle='#ff006e';ctx.shadowBlur=10;ctx.shadowColor='#ff006e';
+    ctx.fillRect(food.x*SZ+2,food.y*SZ+2,SZ-4,SZ-4);ctx.shadowBlur=0;
+    snake.forEach((s,i)=>{
+      ctx.fillStyle=i===0?'#00f5ff':`rgba(0,245,255,${Math.max(0.1,0.8-i*0.06)})`;
+      ctx.shadowBlur=i===0?12:0;ctx.shadowColor='#00f5ff';
+      ctx.beginPath();ctx.roundRect(s.x*SZ+1,s.y*SZ+1,SZ-2,SZ-2,i===0?4:2);ctx.fill();
+    });ctx.shadowBlur=0;
+  }
+  function update(){
+    const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+    if(h.x<0||h.x>=W/SZ||h.y<0||h.y>=H/SZ){go();return;}
+    if(snake.some(s=>s.x===h.x&&s.y===h.y)){go();return;}
+    snake.unshift(h);
+    if(h.x===food.x&&h.y===food.y){score+=10;document.getElementById('sscore').textContent=score;food=rFood();}
+    else snake.pop();
+    draw();
+  }
+  function go(){
+    clearInterval(sg);
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#ff006e';ctx.font='bold 26px Oxanium';ctx.textAlign='center';ctx.fillText('GAME OVER',W/2,H/2-10);
+    ctx.fillStyle='#00f5ff';ctx.font='16px Oxanium';ctx.fillText('Skor: '+score,W/2,H/2+20);
+    showN('Snake','Game Over! Skor: '+score,'🐍');
+  }
+  document.addEventListener('keydown',hKey);
+  function hKey(e){const k={ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0}};const nd=k[e.key];if(nd&&!(nd.x===-dir.x&&nd.y===-dir.y)){dir=nd;e.preventDefault();}}
+  draw();sg=setInterval(update,120);
+}
+function stopSnake(){
+  if(sg){clearInterval(sg);sg=null;}
+  const c=document.getElementById('sc');if(!c)return;
+  const ctx=c.getContext('2d');ctx.fillStyle='#030310';ctx.fillRect(0,0,340,260);
+  ctx.fillStyle='rgba(0,245,255,0.3)';ctx.font='13px Oxanium';ctx.textAlign='center';ctx.fillText('Tekan MULAI untuk bermain',170,135);
+  document.getElementById('sscore').textContent='0';
+}
+setTimeout(stopSnake,200);
+</script>
+</body>
+</html>
